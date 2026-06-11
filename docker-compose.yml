@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+  # MongoDB
+  mongo:
+    image: mongo:7
+    container_name: ts_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - ts_net
+
+  # ML Flask API
+  ml:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    container_name: ts_ml
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    networks:
+      - ts_net
+    volumes:
+      - ml_models:/app/models
+      - ml_data:/app/data
+
+  # Node.js Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ts_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongo:27017/travelshare
+      - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
+      - ML_API_URL=http://ml:5001
+      - NODE_ENV=production
+    depends_on:
+      - mongo
+      - ml
+    networks:
+      - ts_net
+
+  # React Frontend (production build served via nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=http://localhost:5000/api
+        - REACT_APP_ML_URL=http://localhost:5001
+        - REACT_APP_SOCKET_URL=http://localhost:5000
+    container_name: ts_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - ts_net
+
+volumes:
+  mongo_data:
+  ml_models:
+  ml_data:
+
+networks:
+  ts_net:
+    driver: bridge

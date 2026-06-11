@@ -1,0 +1,327 @@
+{
+  "info": {
+    "name": "TravelShare API",
+    "description": "Complete REST API collection for the Travel Sharing Coordination App.\nImport into Postman to test all endpoints.\n\nBase URL: http://localhost:5000/api\nML URL:   http://localhost:5001\n\nWorkflow:\n1. Run 'Register User' → copy token\n2. Set {{token}} in environment\n3. Run other requests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000/api" },
+    { "key": "ml_url",   "value": "http://localhost:5001" },
+    { "key": "token",    "value": "" },
+    { "key": "trip_id",  "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "const json = pm.response.json();",
+              "if (json.token) { pm.collectionVariables.set('token', json.token); }",
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('Has token', () => pm.expect(json.token).to.be.a('string'));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"testuser@example.com\",\n  \"phone\": \"9876543299\",\n  \"password\": \"test123\",\n  \"gender\": \"Male\",\n  \"city\": \"Kolkata\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "const json = pm.response.json();",
+              "if (json.token) { pm.collectionVariables.set('token', json.token); }",
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has user', () => pm.expect(json.user).to.be.an('object'));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"test123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Me",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has user', () => pm.expect(pm.response.json().user).to.exist);"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/auth/me"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/auth/profile",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"9999999999\",\n  \"city\": \"Delhi\",\n  \"emergencyContact\": {\n    \"name\": \"Parent\",\n    \"phone\": \"9000000000\"\n  }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trips",
+      "item": [
+        {
+          "name": "Create Live Trip",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "const json = pm.response.json();",
+              "if (json.trip?._id) { pm.collectionVariables.set('trip_id', json.trip._id); }",
+              "pm.test('Status 201', () => pm.response.to.have.status(201));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/trips",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\": \"live\",\n  \"origin\": {\n    \"lat\": 22.5726,\n    \"lng\": 88.4145,\n    \"address\": \"Salt Lake Sector V\"\n  },\n  \"destination\": {\n    \"lat\": 22.5514,\n    \"lng\": 88.3517,\n    \"address\": \"Park Street\"\n  },\n  \"departureTime\": \"2025-12-15T09:00:00.000Z\",\n  \"totalSeats\": 2,\n  \"actualFare\": 220,\n  \"genderPreference\": \"Any\",\n  \"city\": \"Kolkata\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Scheduled Trip (with ML estimate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/trips",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\": \"scheduled\",\n  \"origin\": {\n    \"lat\": 22.6532,\n    \"lng\": 88.4463,\n    \"address\": \"Dum Dum Airport\"\n  },\n  \"destination\": {\n    \"lat\": 22.5826,\n    \"lng\": 88.4839,\n    \"address\": \"New Town Rajarhat\"\n  },\n  \"departureTime\": \"2025-12-20T08:30:00.000Z\",\n  \"totalSeats\": 3,\n  \"genderPreference\": \"Any\",\n  \"city\": \"Kolkata\",\n  \"distanceKm\": 9.5,\n  \"durationMin\": 28\n}"
+            }
+          }
+        },
+        {
+          "name": "List Trips",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has trips array', () => pm.expect(pm.response.json().trips).to.be.an('array'));"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/trips?city=Kolkata",
+              "query": [{ "key": "city", "value": "Kolkata" }]
+            }
+          }
+        },
+        {
+          "name": "Find Matching Trips",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Has matches', () => pm.expect(pm.response.json().matches).to.be.an('array'));"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/trips/matches",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": { \"lat\": 22.5726, \"lng\": 88.4145, \"address\": \"Salt Lake\" },\n  \"destination\": { \"lat\": 22.5514, \"lng\": 88.3517, \"address\": \"Park Street\" },\n  \"departureTime\": \"2025-12-15T09:00:00.000Z\",\n  \"genderPreference\": \"Any\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Trip by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/trips/{{trip_id}}"
+          }
+        },
+        {
+          "name": "Join a Trip",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/trips/{{trip_id}}/join"
+          }
+        },
+        {
+          "name": "Get Fare Split",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/trips/{{trip_id}}/fare-split"
+          }
+        },
+        {
+          "name": "My Trips",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/trips/user/my"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/chat/{{trip_id}}"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/chat/{{trip_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Hey! Where should we meet?\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ML Service",
+      "item": [
+        {
+          "name": "ML Health Check",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Model ready', () => pm.expect(pm.response.json().model_ready).to.be.true);"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "url": "{{ml_url}}/health"
+          }
+        },
+        {
+          "name": "Predict Fare",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Has fare range', () => {",
+              "  pm.expect(json.lower_fare).to.be.a('number');",
+              "  pm.expect(json.median_fare).to.be.a('number');",
+              "  pm.expect(json.upper_fare).to.be.a('number');",
+              "  pm.expect(json.lower_fare).to.be.lessThan(json.median_fare);",
+              "  pm.expect(json.median_fare).to.be.lessThan(json.upper_fare);",
+              "});"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{ml_url}}/predict",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Kolkata\",\n  \"distance_km\": 7.2,\n  \"duration_min\": 22,\n  \"departure_hour\": 8,\n  \"day_of_week\": 1,\n  \"traffic_index\": 1.4,\n  \"passengers\": 2\n}"
+            }
+          }
+        },
+        {
+          "name": "Route Overlap Score",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Score 0-1', () => {",
+              "  pm.expect(json.overlap_score).to.be.within(0, 1);",
+              "});"
+            ]}
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{ml_url}}/route-overlap",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin1\": { \"lat\": 22.5726, \"lng\": 88.3639 },\n  \"dest1\":   { \"lat\": 22.6000, \"lng\": 88.4500 },\n  \"origin2\": { \"lat\": 22.5800, \"lng\": 88.3700 },\n  \"dest2\":   { \"lat\": 22.5950, \"lng\": 88.4400 }\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Cities",
+          "request": {
+            "method": "GET",
+            "url": "{{ml_url}}/cities"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health & Misc",
+      "item": [
+        {
+          "name": "API Health",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]}
+          }],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        }
+      ]
+    }
+  ]
+}
